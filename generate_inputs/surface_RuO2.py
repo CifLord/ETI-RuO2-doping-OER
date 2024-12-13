@@ -1,7 +1,22 @@
-import itertools, copy
+import itertools, copy, json
 
 from pymatgen.analysis.structure_matcher import StructureMatcher
+from pymatgen.core.surface import *
 
+def get_superslabs():
+    RuO2 = Structure.from_dict(json.load(open('../pmg_structures/RuO2_bulk.json', 'r')))
+    vsize = 15
+    ssize = 15
+    slabgen = SlabGenerator(RuO2, (1,1,0), ssize, vsize, center_slab=True, 
+                            lll_reduce=True, max_normal_search=1)
+    slabdict = {}
+    for i, slab in enumerate(slabgen.get_slabs(symmetrize=True)):
+        superslab = slab.copy()
+        superslab.make_supercell([2,1,1])
+        superslab.make_supercell([[1,1,0], [-1,1,0], [0,0,1]])
+        slabdict[i] = superslab
+        
+    return slabdict
 
 def get_dope_slabs(slab, nlayers, dopants):
     
