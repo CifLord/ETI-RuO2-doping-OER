@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH -o myMPI.o%j
+#SBATCH -N 1 -n 24
+#SBATCH --mem=60G
+#SBATCH --time=200:00:00
+#SBATCH --job-name=ETI_adslabs
+
+conda init tcsh
+conda activate finetuna
+module load vasp/6.3.2
+
+finetuna_wrap.py -c /home/rtran25/ocp_checkpoints/gemnet_oc_base_oc20_oc22.pt --xc pbe --config cust_config.yml
