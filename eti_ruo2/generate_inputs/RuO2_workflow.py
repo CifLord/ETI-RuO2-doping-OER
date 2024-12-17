@@ -1,7 +1,9 @@
 import json, glob
 
 from pymatgen.core.surface import *
+from pymatgen.core.structure import Molecule
 
+from eti_ruo2 import pmg_structures
 
 def get_adsorption_sites():
     
@@ -42,9 +44,11 @@ def get_adsorption_sites():
     return adspos
 
 def load_structures():
+    maind = pmg_structures.__file__
+    maind = maind.replace(maind.split('/')[-1], '')
     
     all_ads_dict = {'OOH': [], 'OH': [], 'O': []}
-    for f in glob.glob('../pmg_structures/adsorbates/*'):
+    for f in glob.glob(os.path.join(maind, 'adsorbates', '*')):
         if '.xyz' not in f:
             continue
         n = f.split('/')[-1].replace('.xyz', '')
@@ -55,10 +59,10 @@ def load_structures():
         else:
             all_ads_dict['O'].append(Molecule.from_file(f))
             
-    slabdict = json.load(open('../pmg_structures/RuO2_slabs.json', 'r'))
+    slabdict = json.load(open(os.path.join(maind, 'RuO2_slabs.json'), 'r'))
     slabdict = {i: Slab.from_dict(slabdict[i]) for i in slabdict.keys()}
-    bulk = Structure.from_dict(json.load(open('../pmg_structures/RuO2_bulk.json', 'r')))
-    adspos = json.load(open('adsorption_sites.json', 'r'))    
+    bulk = Structure.from_dict(json.load(open(os.path.join(maind, 'RuO2_bulk.json'), 'r')))
+    adspos = json.load(open(os.path.join(maind, 'adsorption_sites.json'), 'r'))    
 
     return all_ads_dict, slabdict, bulk, adspos
 
