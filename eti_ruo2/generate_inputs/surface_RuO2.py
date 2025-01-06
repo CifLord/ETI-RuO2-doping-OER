@@ -3,6 +3,63 @@ import itertools, copy, json
 from pymatgen.analysis.structure_matcher import StructureMatcher
 from pymatgen.core.surface import *
 
+def get_Ru_type(slab):
+    """
+    Main used for discerning between Ru-atoms w/ 
+    an ontop (Ru_a) or bridge (Ru_b) configuration
+    """
+    
+    site_type = []
+    for site in slab:
+        if site.species_string == 'O':
+            site_type.append('O')
+        else:
+            Onn = [nn for nn in slab.get_neighbors(site, 2.1) if nn.species_string == 'O']
+            if len([nn for nn in Onn if nn.coords[2]-site.coords[2] > 0.1]) == 2:
+                site_type.append('Ru_b')
+            elif len([nn for nn in Onn if nn.coords[2]-site.coords[2] > 0.1]) == 1:
+                site_type.append('Ru_a')
+            elif len([nn for nn in Onn if nn.coords[2]-site.coords[2] > 0.1]) == 0:
+                if len([nn for nn in Onn if site.coords[2]-nn.coords[2] > 0.1]) == 2:
+                    site_type.append('Ru_b')
+                elif len([nn for nn in Onn if site.coords[2]-nn.coords[2] > 0.1]) == 1:
+                    site_type.append('Ru_a')
+                    
+    return site_type
+
+def get_nlayers(slab):
+    """
+    Identify the nth layer of each layer of atoms as a 
+    site property. Layer 0 is the topmost layer of atoms
+    """
+    
+    rounded_fracc = []
+    actual_fracc = []
+    for site in slab:
+        if site.species_string == 'Ru':
+            coord = round(site.coords[2], 0)
+            if coord not in rounded_fracc:
+                rounded_fracc.append(coord)
+                actual_fracc.append(site.coords[2])
+                
+    # reverse = True, the topmost layer is 0th
+    actual_fracc = sorted(actual_fracc, reverse=True)
+    layer_ranges = []
+    for i, f in enumerate(actual_fracc):
+        if i == 0:
+            layer_ranges.append([f-0.1, f+3])
+        else:
+            layer_ranges.append([f-0.1, actual_fracc[i-1]-0.1])
+    nlayers = []
+    for i, site in enumerate(slab):
+        nth = len(layer_ranges)
+        for ii, r in enumerate(layer_ranges):
+            if r[0] < site.coords[2] < r[1]:
+                nth = ii
+        nlayers.append(nth)
+    
+    return nlayers
+
 def get_superslabs():
     RuO2 = Structure.from_dict(json.load(open('../pmg_structures/RuO2_bulk.json', 'r')))
     vsize = 15
@@ -14,28 +71,20 @@ def get_superslabs():
         superslab = slab.copy()
         superslab.make_supercell([2,1,1])
         superslab.make_supercell([[1,1,0], [-1,1,0], [0,0,1]])
+        Rutype = get_Ru_type(superslab)
+        superslab.add_site_property('Rutype', Rutype)
+        nlayers = get_nlayers(superslab)
+        superslab.add_site_property('nlayer', nlayers)
         slabdict[i] = superslab
         
     return slabdict
 
 def get_dope_slabs(slab, nlayers, dopants):
-    
-    rounded_fracc = []
-    actual_fracc = []
-    for site in slab:
-        if site.species_string == 'Ru':
-            coord = round(site.coords[2], 0)
-            if coord not in rounded_fracc:
-                rounded_fracc.append(coord)
-                actual_fracc.append(site.coords[2])
-                
-    actual_fracc = sorted(actual_fracc)
-    dope_indices = []
-    
+        
     for i, site in enumerate(slab):
         for nlayer in nlayers:
             if site.species_string == 'Ru':
-                if actual_fracc[-nlayer]-0.5 < site.coords[2] < actual_fracc[-nlayer]+0.5:
+                if site.nlayer == nlayer:
                     dope_indices.append(i)
             
     revdopants = copy.deepcopy(dopants)
@@ -43,30 +92,25 @@ def get_dope_slabs(slab, nlayers, dopants):
     for indices in itertools.combinations(dope_indices, len(dopants)):
         s = slab.copy()
         for n, i in enumerate(indices):
-            s.replace(i, dopants[n], properties={'selective_dynamics': [True]*3})
+            s.replace(i, dopants[n], properties={'selective_dynamics': [True]*3, 
+                                                 'Rutype': slab[i].Rutype,
+                                                 'nlayer': slab[i].nlayer})
         doped_slabs.append(s)
         if len(dopants) > 1:
             for n, i in enumerate(indices):
-                s.replace(i, revdopants[n],  properties={'selective_dynamics': [True]*3})
+                s.replace(i, revdopants[n],  properties={'selective_dynamics': [True]*3,
+                                                         'Rutype': slab[i].Rutype,
+                                                         'nlayer': slab[i].nlayer})
             doped_slabs.append(s)
         
     sm = StructureMatcher()
     return [g[0] for g in sm.group_structures(doped_slabs)]
 
 def get_selective_dynamics(slab, nlayers=3):
-    rounded_fracc = []
-    actual_fracc = []
-    for site in slab:
-        if site.species_string != 'O':
-            coord = round(site.coords[2], 0)
-            if coord not in rounded_fracc:
-                rounded_fracc.append(coord)
-                actual_fracc.append(site.coords[2])
-                
-    actual_fracc = sorted(actual_fracc)
+    
     selective_dynamics = []
     for site in slab:
-        if site.coords[2] > actual_fracc[-nlayers]-0.5:
+        if site.nlayer <= nlayers:
             selective_dynamics.append([True]*3)
         else:
             selective_dynamics.append([False]*3)
@@ -118,4 +162,3 @@ def get_vac_slabs(slab):
     if not vac_slabs:
         return []
     return [g[0] for g in sm.group_structures(vac_slabs)]
-
