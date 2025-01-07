@@ -87,22 +87,14 @@ def get_dope_slabs(slab, nlayers, dopants):
             if site.species_string == 'Ru':
                 if site.nlayer == nlayer:
                     dope_indices.append(i)
-            
-    revdopants = copy.deepcopy(dopants)
     doped_slabs = []
-    for indices in itertools.combinations(dope_indices, len(dopants)):
+    for indices in itertools.permutations(dope_indices, len(dopants)):
         s = slab.copy()
         for n, i in enumerate(indices):
             s.replace(i, dopants[n], properties={'selective_dynamics': [True]*3, 
                                                  'Rutype': slab[i].Rutype,
                                                  'nlayer': slab[i].nlayer})
         doped_slabs.append(s)
-        if len(dopants) > 1:
-            for n, i in enumerate(indices):
-                s.replace(i, revdopants[n],  properties={'selective_dynamics': [True]*3,
-                                                         'Rutype': slab[i].Rutype,
-                                                         'nlayer': slab[i].nlayer})
-            doped_slabs.append(s)
         
     sm = StructureMatcher()
     return [g[0] for g in sm.group_structures(doped_slabs)]
