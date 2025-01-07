@@ -80,7 +80,8 @@ def get_superslabs():
     return slabdict
 
 def get_dope_slabs(slab, nlayers, dopants):
-        
+    
+    dope_indices = []
     for i, site in enumerate(slab):
         for nlayer in nlayers:
             if site.species_string == 'Ru':
