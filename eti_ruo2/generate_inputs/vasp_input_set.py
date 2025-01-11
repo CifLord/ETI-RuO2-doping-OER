@@ -92,7 +92,7 @@ def write_inputs(atoms, user_incar_settings={}, mags=None, Ucorr=False,
     calc.write_input(atoms)
 
 
-def make_vasp_folder(slab, term, base_folder, submit_script, adsname=None, mag='nm',
+def make_vasp_folder(slab, term, base_folder, submit_script, maind, adsname=None, mag='nm', mag_dict={},
                      adspos_i=None, vac_i=None, dopepos=None, dopants=None):
     
     a = AseAtomsAdaptor.get_atoms(slab)
@@ -100,6 +100,8 @@ def make_vasp_folder(slab, term, base_folder, submit_script, adsname=None, mag='
                 in slab.site_properties['selective_dynamics']])
     magmoms = [0.6]*len(a) if mag == 'nm' else \
     [0.6 if at.symbol not in ['Co', 'Mn'] else 1 for at in a]
+    if mag_dict:
+        magmoms = [mag_dict[at.symbol] if at.symbol in mag_dict else 0.6 for at in a]
     
     Mcomp = None
     if dopants:
@@ -107,14 +109,14 @@ def make_vasp_folder(slab, term, base_folder, submit_script, adsname=None, mag='
         for d in dopants:
             Mcomp+='%s%s' %(d, int(slab.composition[d]))
     
-    if dopants:
-        n += 'RuO2_%s_dope%s_110_term%s_%s' %(Mcomp, dopepos, term, mag)
+    if dopants != None:
+        n = 'RuO2_%s_dope%s_110_term%s_%s' %(Mcomp, dopepos, term, mag)
     else:
         n = 'RuO2_110_term%s' %(term)
-    if vac_i:
+    if vac_i != None:
         n += '_vac%s' %(vac_i)
-    if adsname:
-        n += '_%s%s' %(adsname, adspos_i)        
+    if adsname != None:
+        n += '_%s%s' %(adsname, adspos_i)   
         
     new_f = os.path.join(base_folder, n)
     os.mkdir(new_f)
