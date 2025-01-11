@@ -121,7 +121,7 @@ def get_adslabs(slab, adscoords, adsconfigs):
                 adslab.append(a.species_string, np.array(adscoord)+a.coords, 
                               coords_are_cartesian=True, 
                               properties={'selective_dynamics': [True]*3, 
-                                          'sitetype': 'adsorbate'})
+                                          'is_adsorbate': True})
             all_adslabs.append(adslab)
         
     sm = StructureMatcher()

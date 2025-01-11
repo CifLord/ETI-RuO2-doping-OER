@@ -91,3 +91,47 @@ def write_inputs(atoms, user_incar_settings={}, mags=None, Ucorr=False,
     calc = Vasp(**vasp_params)
     calc.write_input(atoms)
 
+
+def make_vasp_folder(slab, term, base_folder, submit_script, adsname=None, mag='nm',
+                     adspos_i=None, vac_i=None, dopepos=None, dopants=None):
+    
+    a = AseAtomsAdaptor.get_atoms(slab)
+    a.set_tags([1 if all(sel) else 0 for sel \
+                in slab.site_properties['selective_dynamics']])
+    magmoms = [0.6]*len(a) if mag == 'nm' else \
+    [0.6 if at.symbol not in ['Co', 'Mn'] else 1 for at in a]
+    
+    Mcomp = None
+    if dopants:
+        Mcomp = 'Ru%s' %(int(slab.composition['Ru']))
+        for d in dopants:
+            Mcomp+='%s%s' %(d, int(slab.composition[d]))
+    
+    if dopants:
+        n += 'RuO2_%s_dope%s_110_term%s_%s' %(Mcomp, dopepos, term, mag)
+    else:
+        n = 'RuO2_110_term%s' %(term)
+    if vac_i:
+        n += '_vac%s' %(vac_i)
+    if adsname:
+        n += '_%s%s' %(adsname, adspos_i)        
+        
+    new_f = os.path.join(base_folder, n)
+    os.mkdir(new_f)
+    slab.to(os.path.join(new_f, '%s.cif' %(n)))
+    shutil.copyfile(submit_script, os.path.join(new_f, 'submit_script'))
+    
+    metadata = {'structure': slab.as_dict()}
+    if dopants:
+        metadata['dopant_sites'] = [site.as_dict() for site in slab \
+                                    if site.species_string not in ['O', 'Ru', 'H']]
+    if vac_i:
+        metadata['vac_site'] = slab.vacsite.as_dict()
+    if adsname:
+        metadata['adsites'] = [site.as_dict() for site in slab \
+                               if 'is_adsorbate' in site.properties]
+        
+    json.dump(metadata, open(os.path.join(new_f, 'metadata.json'), 'w'))
+    os.chdir(new_f)
+    write_inputs(a, mags=magmoms)
+    os.chdir(maind)
