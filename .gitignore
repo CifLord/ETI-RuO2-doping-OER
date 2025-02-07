@@ -1,0 +1,50 @@
+#python
+__pycache__/
+*.pyc
+myvenv/
+finetuna.egg-info
+build/
+dist/
+
+#output files
+*.ampdb
+*.db
+*.traj
+*.amp
+*.txt
+*.pdf
+*.OUTCAR
+*.pt
+*.gif
+*.tar
+*.out
+*.pickle
+*.png
+*.h5
+*.dirlock
+*.lock
+*.swp
+*.lmdb
+*.lmdb-lock
+
+*/test_figs/*
+*/dask-worker-space/*
+*/logs/*
+
+.ipynb_checkpoints
+*/checkpoints/*
+stored-primes/
+
+#quantum espresso outputs
+**/wandb/**
+*.dat
+*.xml
+*.pwi
+*.pwo
+*.update
+
+# pytest outputs
+.pytest_cache
+
+# exceptions
+!examples/**/*.traj

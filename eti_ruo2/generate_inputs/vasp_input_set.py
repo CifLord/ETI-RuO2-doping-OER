@@ -29,7 +29,7 @@ def write_inputs(atoms, user_incar_settings={}, mags=None, Ucorr=False,
 
     # default settings for oxide
     vasp_params = dict(xc='PBE', gga='PE', lreal=False, encut=500, ediff=1e-4,
-                       ediffg=-0.03, ispin=2, isif=2, lcharg=False,
+                       ediffg=-0.03, ispin=2, isif=2, lcharg=False, ncore=6,
                        lwave=False, ismear=0, sigma=0.2, isym=2, nsw=300, lorbit=11,
                        lvtot=False, ibrion=2, potim=0.5, nelm=300, algo='Fast')
 
